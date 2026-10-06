@@ -245,6 +245,15 @@ dialog label.chk input { width: auto; margin: 0; }
 .info-done { background: #e4f4ec; border-color: #b7dfca; }
 @media (max-width: 600px) { .unm { grid-template-columns: 1fr; } }
 
+/* ---------- 登入與同步狀態 ---------- */
+.sync { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text); flex-wrap: wrap; }
+.sdot-lg { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.login { max-width: 380px; margin: 60px auto; }
+.login h2 { margin-bottom: 16px; }
+.login label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+.login label input { margin-top: 4px; color: var(--text); }
+.login-msg { color: var(--danger); font-size: 13px; margin: 0 0 10px; }
+
 </style>
 </head>
 <body>
@@ -259,6 +268,7 @@ dialog label.chk input { width: auto; margin: 0; }
       <a href="#logs" data-view="logs">異動紀錄</a>
       <a href="#settings" data-view="settings">設定</a>
     </nav>
+    <div class="sync" id="sync"></div>
   </header>
 
   <main id="view"></main>
@@ -267,7 +277,20 @@ dialog label.chk input { width: auto; margin: 0; }
 
   <!-- SheetJS：讓瀏覽器能讀 Excel(.xlsx)，只用在「匯入訂單」 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Supabase：雲端資料庫與登入，讓多台設備同步 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+/*
+ * 雲端同步設定（Supabase）
+ * 這裡的 key 是「可公開」的 publishable key，設計上就是放在網頁裡；
+ * 真正的保護來自資料庫的權限規則 + 登入，沒有登入的人讀不到也寫不進資料。
+ * 若要改回「只存本機」，把 url 清空即可。
+ */
+const SUPABASE_CONFIG = {
+  url: 'https://akrgrgqkdnbkqvzitkju.supabase.co',
+  key: 'sb_publishable_c28-95dfcGedta63a1i5lA_qGlYxN2f'
+};
+
 /*
  * 資料儲存層
  * 目前存在瀏覽器 localStorage。之後要改接線上資料庫（例如 Google Sheets、Firebase、Supabase），
@@ -276,7 +299,99 @@ dialog label.chk input { width: auto; margin: 0; }
 const Store = {
   KEY: 'course-admin-v1',
 
-  load() {
+  /* ---------- 儲存層：有設定 Supabase 就用雲端（多台設備同步），否則存在本機瀏覽器 ---------- */
+  mode: 'local',
+  client: null,
+  version: 0,
+  email: '',
+  onStatus: () => {},
+  CACHE_KEY: 'course-admin-cloud-cache',
+  _timer: null, _saving: false, _dirty: false, _pending: null, _conflict: false,
+
+  cloudConfigured() {
+    return typeof SUPABASE_CONFIG !== 'undefined' && !!SUPABASE_CONFIG.url && typeof supabase !== 'undefined';
+  },
+
+  // 啟動：回傳 { data } 或 { needLogin } 或 { notMember }
+  async init() {
+    if (!this.cloudConfigured()) { this.mode = 'local'; return { data: this.loadLocal() }; }
+    this.mode = 'cloud';
+    this.client = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+    const { data: { session } } = await this.client.auth.getSession();
+    if (!session) return { needLogin: true };
+    return this.afterLogin(session);
+  },
+  async login(email, password) {
+    const { data, error } = await this.client.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return this.afterLogin(data.session);
+  },
+  async logout() { await this.client.auth.signOut(); },
+  async afterLogin(session) {
+    this.email = session.user.email;
+    const { data: ok, error } = await this.client.rpc('is_member');
+    if (error) throw error;
+    if (!ok) return { notMember: true };
+    return { data: await this.pull(true) };
+  },
+
+  // 從雲端讀整份資料；雲端還沒有資料時，用這個瀏覽器原有的資料（沒有就用預設課程）上傳
+  async pull(createIfMissing) {
+    const { data: row, error } = await this.client.from('app_state').select('data,version').eq('id', 1).maybeSingle();
+    if (error) throw error;
+    if (row) { this.version = row.version; this._cache(row.data); return this.migrate(row.data); }
+    if (!createIfMissing) throw new Error('雲端找不到資料');
+    const seed = this.loadLocal();
+    const { error: e2 } = await this.client.from('app_state').insert({ id: 1, data: seed, version: 1, updated_by: this.email });
+    if (e2) return this.pull(false);   // 另一台剛好先建立了
+    this.version = 1;
+    return seed;
+  },
+
+  // 儲存：本機直接寫；雲端稍等 0.5 秒合併多次修改再送出，並檢查版本避免蓋掉別台的修改
+  save(data) {
+    if (this.mode !== 'cloud') { localStorage.setItem(this.KEY, JSON.stringify(data)); return; }
+    if (this._conflict) return;
+    this._pending = data;
+    this.onStatus('saving');
+    clearTimeout(this._timer);
+    this._timer = setTimeout(() => this._flush(), 500);
+  },
+  hasPending() { return this.mode === 'cloud' && !!(this._pending || this._saving); },
+  async _flush() {
+    if (this._saving) { this._dirty = true; return; }
+    const data = this._pending;
+    if (!data) return;
+    this._saving = true; this._pending = null;
+    try {
+      const { data: rows, error } = await this.client.from('app_state')
+        .update({ data, version: this.version + 1, updated_at: new Date().toISOString(), updated_by: this.email })
+        .eq('id', 1).eq('version', this.version).select('version');
+      if (error) throw error;
+      if (!rows.length) { this._conflict = true; this.onStatus('conflict'); return; }
+      this.version = rows[0].version;
+      this._cache(data);
+      this.onStatus('saved');
+    } catch (e) {
+      if (!this._pending) this._pending = data;
+      this.onStatus('error', e.message);
+      clearTimeout(this._timer);
+      this._timer = setTimeout(() => this._flush(), 5000);   // 失敗 5 秒後自動重試
+    } finally {
+      this._saving = false;
+      if (this._dirty) { this._dirty = false; this._flush(); }
+    }
+  },
+  // 檢查雲端有沒有比較新的版本（別台改過）；有的話回傳最新資料
+  async refresh() {
+    if (this.mode !== 'cloud' || this._pending || this._saving || this._conflict) return null;
+    const { data: row } = await this.client.from('app_state').select('version').eq('id', 1).maybeSingle();
+    if (row && row.version > this.version) return this.pull(false);
+    return null;
+  },
+  _cache(data) { try { localStorage.setItem(this.CACHE_KEY, JSON.stringify(data)); } catch (e) { /* 備份失敗不影響使用 */ } },
+
+  loadLocal() {
     try {
       const raw = localStorage.getItem(this.KEY);
       if (raw) return this.migrate(JSON.parse(raw));
@@ -284,12 +399,8 @@ const Store = {
       console.warn('讀取資料失敗，改用預設資料', e);
     }
     const data = this.initial();
-    this.save(data);
-    return data;
-  },
-
-  save(data) {
     localStorage.setItem(this.KEY, JSON.stringify(data));
+    return data;
   },
 
   // 舊版資料升級：單一日期 → 多個上課日；補上成班人數等新欄位
@@ -385,7 +496,9 @@ const Store = {
 };
 
 /* 實體課務管理系統：主程式 */
-let db = Store.load();
+let db = Store.empty();          // 啟動後由 boot() 載入（本機或雲端）
+let appState = 'loading';        // loading | login | denied | error | ready
+let authMsg = '';
 function ymdMonth(d = new Date()) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
 const ui = { sessionCourse: '', regSession: '', regStatus: '', regQ: '', calMonth: ymdMonth() };
 
@@ -1121,12 +1234,65 @@ function viewSettings() {
 /* ---------- 路由與渲染 ---------- */
 const views = { dashboard: viewDashboard, courses: viewCourses, sessions: viewSessions, registrations: viewRegistrations, import: viewImport, logs: viewLogs, settings: viewSettings };
 function render() {
+  if (appState !== 'ready') { $('#view').innerHTML = authView(); return; }
   const v = (location.hash || '#dashboard').slice(1);
   const name = views[v] ? v : 'dashboard';
   document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
   $('#view').innerHTML = views[name]();
 }
 window.addEventListener('hashchange', render);
+
+/* ---------- 登入與雲端同步 ---------- */
+function authView() {
+  const box = body => `<div class="card login">${body}</div>`;
+  if (appState === 'loading') return box('<p class="muted" style="margin:0">載入中…</p>');
+  if (appState === 'error') return box(`<h2>連線失敗</h2><p class="muted">${esc(authMsg)}</p><button class="primary" data-act="retry">重試</button>`);
+  if (appState === 'denied') return box(`<h2>沒有使用權限</h2><p>帳號 <b>${esc(Store.email)}</b> 還不在允許名單內。</p><p class="muted">請管理者把這個 Email 加入允許名單。</p><button data-act="logout">登出</button>`);
+  return box(`<h2>登入課務管理系統</h2>
+    <form id="login-form">
+      <label>Email<input name="email" type="email" autocomplete="username" required></label>
+      <label>密碼<input name="password" type="password" autocomplete="current-password" required></label>
+      ${authMsg ? `<p class="login-msg">${esc(authMsg)}</p>` : ''}
+      <button class="primary" style="width:100%">登入</button>
+    </form>`);
+}
+
+function applyInit(r) {
+  if (r.needLogin) appState = 'login';
+  else if (r.notMember) appState = 'denied';
+  else { db = r.data; appState = 'ready'; }
+  updateSync();
+  render();
+}
+async function boot() {
+  appState = 'loading'; render();
+  try { applyInit(await Store.init()); }
+  catch (e) { appState = 'error'; authMsg = e.message || String(e); updateSync(); render(); }
+}
+
+let syncState = 'saved', syncErr = '';
+function updateSync(s, err) {
+  if (s) { syncState = s; syncErr = err || ''; }
+  const el = $('#sync');
+  if (!el) return;
+  if (Store.mode !== 'cloud') { el.innerHTML = '<span class="muted">本機模式：資料只存在這個瀏覽器</span>'; return; }
+  if (appState !== 'ready') { el.innerHTML = ''; return; }
+  const m = { saving: ['#d9822b', '儲存中…'], saved: ['#3a9a6b', '已同步'], error: ['#d6564f', '儲存失敗，稍後自動重試'], conflict: ['#d6564f', '其他設備剛更新了資料，你剛剛的修改沒有儲存'] }[syncState];
+  el.innerHTML = `<span class="sdot-lg" style="background:${m[0]}"></span><span>${m[1]}</span>
+    ${syncState === 'conflict' ? '<button class="sm primary" data-act="reload">重新載入最新資料</button>' : ''}
+    <span class="muted">${esc(Store.email)}</span><button class="sm" data-act="logout">登出</button>`;
+}
+Store.onStatus = updateSync;
+
+// 別台改了資料時自動更新：回到這個分頁時、以及每 20 秒檢查一次
+async function syncCheck() {
+  if (appState !== 'ready' || Store.mode !== 'cloud' || modal.open) return;
+  try { const fresh = await Store.refresh(); if (fresh) { db = fresh; render(); } } catch (e) { /* 網路暫時失敗，下次再試 */ }
+}
+setInterval(syncCheck, 20000);
+window.addEventListener('focus', syncCheck);
+window.addEventListener('beforeunload', e => { if (Store.hasPending()) { e.preventDefault(); e.returnValue = ''; } });
+const cloudNote = () => Store.mode === 'cloud' ? '\n\n注意：已連到雲端，所有設備的資料都會一起被改掉。' : '';
 
 /* ---------- 事件（集中處理） ---------- */
 function moveMonth(n) {
@@ -1155,6 +1321,9 @@ const actions = {
     log('場次', `刪除場次：${sessionLabel(s)}`); commit(); render();
   },
   'goto-session': id => { ui.regSession = id; ui.regStatus = ''; ui.regQ = ''; location.hash = '#registrations'; },
+  'logout': async () => { await Store.logout(); authMsg = ''; boot(); },
+  'reload': () => location.reload(),
+  'retry': () => boot(),
   'export-regs': () => exportRegs(),
   'imp-apply': () => applyImport(),
   'imp-map': () => {
@@ -1184,9 +1353,9 @@ const actions = {
     a.click(); URL.revokeObjectURL(url);
   },
   'import': () => $('#import-file').click(),
-  'load-real': () => { if (confirm('會覆蓋現有資料，確定嗎？')) { db = Store.initial(); commit(); render(); } },
-  'load-sample': () => { if (confirm('會覆蓋現有資料，確定嗎？')) { db = Store.sample(); commit(); render(); } },
-  'clear-all': () => { if (confirm('會刪除全部資料且無法復原，確定嗎？')) { db = Store.empty(); commit(); render(); } }
+  'load-real': () => { if (confirm('會覆蓋現有資料，確定嗎？' + cloudNote())) { db = Store.initial(); commit(); render(); } },
+  'load-sample': () => { if (confirm('會覆蓋現有資料，確定嗎？' + cloudNote())) { db = Store.sample(); commit(); render(); } },
+  'clear-all': () => { if (confirm('會刪除全部資料且無法復原，確定嗎？' + cloudNote())) { db = Store.empty(); commit(); render(); } }
 };
 
 document.addEventListener('click', e => {
@@ -1224,7 +1393,15 @@ document.addEventListener('input', e => {
   if (e.target.id === 'f-q') { ui.regQ = e.target.value; $('#regList').innerHTML = regTable(); }
 });
 
-document.addEventListener('submit', e => {
+document.addEventListener('submit', async e => {
+  if (e.target.id === 'login-form') {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    authMsg = '登入中…'; render();
+    try { authMsg = ''; applyInit(await Store.login(f.get('email'), f.get('password'))); }
+    catch (err) { appState = 'login'; authMsg = /Invalid login/i.test(err.message) ? 'Email 或密碼不正確' : '登入失敗：' + err.message; render(); }
+    return;
+  }
   if (e.target.id !== 'rules-form') return;
   e.preventDefault();
   const rows = [...e.target.querySelectorAll('.rule-row')].map(r => ({
@@ -1236,7 +1413,7 @@ document.addEventListener('submit', e => {
   log('設定', '更新退費規則'); commit(); render(); alert('已儲存');
 });
 
-render();
+boot();
 
   </script>
 </body>
