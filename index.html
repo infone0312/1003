@@ -288,7 +288,9 @@ dialog label.chk input { width: auto; margin: 0; }
  */
 const SUPABASE_CONFIG = {
   url: 'https://akrgrgqkdnbkqvzitkju.supabase.co',
-  key: 'sb_publishable_c28-95dfcGedta63a1i5lA_qGlYxN2f'
+  key: 'sb_publishable_c28-95dfcGedta63a1i5lA_qGlYxN2f',
+  // false = 暫時免登入（任何人都能看、能改）；改回 true 並在資料庫刪除 "temp open" 三條規則，就恢復登入保護
+  requireLogin: false
 };
 
 /*
@@ -318,6 +320,10 @@ const Store = {
     this.mode = 'cloud';
     this.client = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
     const { data: { session } } = await this.client.auth.getSession();
+    if (!session && SUPABASE_CONFIG.requireLogin === false) {   // 暫時免登入模式
+      this.email = '';
+      return { data: await this.pull(true) };
+    }
     if (!session) return { needLogin: true };
     return this.afterLogin(session);
   },
@@ -342,7 +348,7 @@ const Store = {
     if (row) { this.version = row.version; this._cache(row.data); return this.migrate(row.data); }
     if (!createIfMissing) throw new Error('雲端找不到資料');
     const seed = this.loadLocal();
-    const { error: e2 } = await this.client.from('app_state').insert({ id: 1, data: seed, version: 1, updated_by: this.email });
+    const { error: e2 } = await this.client.from('app_state').insert({ id: 1, data: seed, version: 1, updated_by: this.email || 'anon' });
     if (e2) return this.pull(false);   // 另一台剛好先建立了
     this.version = 1;
     return seed;
@@ -365,7 +371,7 @@ const Store = {
     this._saving = true; this._pending = null;
     try {
       const { data: rows, error } = await this.client.from('app_state')
-        .update({ data, version: this.version + 1, updated_at: new Date().toISOString(), updated_by: this.email })
+        .update({ data, version: this.version + 1, updated_at: new Date().toISOString(), updated_by: this.email || 'anon' })
         .eq('id', 1).eq('version', this.version).select('version');
       if (error) throw error;
       if (!rows.length) { this._conflict = true; this.onStatus('conflict'); return; }
@@ -1280,7 +1286,7 @@ function updateSync(s, err) {
   const m = { saving: ['#d9822b', '儲存中…'], saved: ['#3a9a6b', '已同步'], error: ['#d6564f', '儲存失敗，稍後自動重試'], conflict: ['#d6564f', '其他設備剛更新了資料，你剛剛的修改沒有儲存'] }[syncState];
   el.innerHTML = `<span class="sdot-lg" style="background:${m[0]}"></span><span>${m[1]}</span>
     ${syncState === 'conflict' ? '<button class="sm primary" data-act="reload">重新載入最新資料</button>' : ''}
-    <span class="muted">${esc(Store.email)}</span><button class="sm" data-act="logout">登出</button>`;
+    ${Store.email ? `<span class="muted">${esc(Store.email)}</span><button class="sm" data-act="logout">登出</button>` : '<span class="muted">免登入模式</span>'}`;
 }
 Store.onStatus = updateSync;
 
