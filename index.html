@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>實體課務管理系統</title>
+  <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMjAwIj4KICA8cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U4ZWVmYyIvPgogIDx0ZXh0IHg9IjIwMCIgeT0iMTE1IiBmb250LXNpemU9IjY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5OaPC90ZXh0Pgo8L3N2Zz4K" type="image/svg+xml">
+  <style>
+:root {
+  --bg: #f4f6fb;
+  --card: #fff;
+  --text: #1e293b;
+  --muted: #64748b;
+  --line: #e3e8f0;
+  --primary: #4a5bd4;
+  --primary-soft: #eceffd;
+  --danger: #d6564f;
+  --ok: #3a9a6b;
+  --warn: #d9822b;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(30, 41, 59, .05), 0 4px 14px rgba(30, 41, 59, .05);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  line-height: 1.6;
+}
+.topbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  box-shadow: 0 1px 8px rgba(30, 41, 59, .06);
+}
+.topbar h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+nav { display: flex; flex-wrap: wrap; gap: 4px; }
+nav a {
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+}
+nav a { transition: background .15s, color .15s; }
+nav a:hover { background: var(--primary-soft); color: var(--primary); }
+nav a.active { background: var(--primary); color: #fff; font-weight: 600; box-shadow: 0 2px 8px rgba(74, 91, 212, .35); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
+h2 { margin: 0 0 16px; font-size: 20px; }
+h3 { margin: 0 0 8px; font-size: 16px; }
+.head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+.head h2 { margin: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.stat .num { font-size: 24px; font-weight: 700; color: var(--primary); white-space: nowrap; }
+.stat .lbl { color: var(--muted); font-size: 13px; }
+.stat { position: relative; overflow: hidden; padding-left: 20px; }
+.stat::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c, var(--primary)); }
+.stat:nth-child(1) { --c: #4a5bd4; } .stat:nth-child(2) { --c: #2f8fa8; } .stat:nth-child(3) { --c: #e8913a; }
+.stat:nth-child(4) { --c: #3a9a6b; } .stat:nth-child(5) { --c: #7c6fd6; } .stat:nth-child(6) { --c: #94a3b8; }
+.stat:nth-child(5) .num { color: #7c6fd6; } .stat:nth-child(6) .num { color: #64748b; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.course { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.course img { width: 100%; height: 150px; object-fit: cover; display: block; background: var(--primary-soft); }
+.course .body { padding: 14px 16px; flex: 1; }
+.course .desc { color: var(--muted); font-size: 14px; margin: 4px 0 8px; }
+.course .foot { padding: 10px 16px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px; }
+
+table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; font-size: 14px; box-shadow: var(--shadow); }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { background: #f1f4fa; font-weight: 600; color: var(--muted); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+tr:hover td { background: #fafbff; }
+th:hover { background: #f1f4fa; }
+.table-wrap { overflow-x: auto; }
+.empty { text-align: center; color: var(--muted); padding: 32px; }
+
+.tag { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 12px; background: var(--primary-soft); color: var(--primary); }
+.tag.ok { background: #e4f4ec; color: #2c7d55; }
+.tag.warn { background: #fdf0e0; color: #b8691a; }
+.tag.gray { background: #eef1f5; color: #64748b; }
+.tag.danger { background: #fde9e7; color: #bd453f; }
+.muted { color: var(--muted); font-size: 13px; }
+
+.bar { position: relative; width: 90px; height: 6px; background: var(--line); border-radius: 3px; display: inline-block; vertical-align: middle; margin-left: 6px; }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, #7d8cf0, var(--primary)); border-radius: 3px; }
+.bar u { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #d6564f; text-decoration: none; }
+
+button, .btn {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background .15s, box-shadow .15s;
+}
+button:hover { background: #f1f4fa; }
+button.primary { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 2px 6px rgba(74, 91, 212, .3); }
+button.primary:hover { background: #3b4bbf; }
+button.danger { color: #bd453f; border-color: #f2c4c0; }
+button.danger:hover { background: #fdf0ef; }
+button.sm { padding: 3px 9px; font-size: 12px; }
+
+input, select, textarea {
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 10px;
+  border: 1px solid #d3dae6;
+  border-radius: 8px;
+  background: #fff;
+  width: 100%;
+}
+.toolbar input, .toolbar select { width: auto; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary-soft); border-color: var(--primary); }
+
+dialog {
+  border: 0;
+  border-radius: 18px;
+  padding: 0;
+  width: min(520px, calc(100vw - 24px));
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
+}
+dialog::backdrop { background: rgba(0, 0, 0, .4); }
+dialog form { padding: 22px; max-height: 88vh; overflow-y: auto; }
+dialog h2 { margin-bottom: 14px; }
+dialog label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+dialog label input, dialog label select, dialog label textarea { margin-top: 4px; color: var(--text); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.info {
+  background: var(--primary-soft);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+.info b { color: var(--primary); }
+
+.rule-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.rule-row input { width: 90px; }
+.section { margin-bottom: 28px; }
+
+@media (max-width: 600px) {
+  .row2 { grid-template-columns: 1fr; }
+  .topbar { padding: 10px 12px; }
+}
+
+/* ---------- 時程儀表板 ---------- */
+.section > h3 { font-size: 17px; margin-bottom: 10px; }
+.section > h3 .muted { font-weight: 400; margin-left: 6px; }
+
+.pill-tag { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; color: #fff; }
+.legend .pill-tag { width: 14px; height: 14px; padding: 0; vertical-align: -2px; margin-right: 4px; border-radius: 4px; }
+.pill-tag.full, .pill.full { background: #2f8fa8; }
+.pill-tag.formed, .pill.formed { background: #3a9a6b; }
+.pill-tag.unformed, .pill.unformed { background: #e8913a; }
+.pill-tag.risk, .pill.risk { background: #d6564f; }
+.pill-tag.past, .pill.past { background: #aab2bd; }
+.pill-tag.off { background: #fff; border: 1px dashed #adb5bd; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+
+.tag.live { background: #e4f4ec; color: #2c7d55; font-weight: 600; animation: pulse 1.6s infinite; }
+@keyframes pulse { 50% { opacity: .45; } }
+
+.now-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.now { cursor: pointer; transition: box-shadow .15s; }
+.now:hover, .sum-line:hover { box-shadow: 0 4px 16px rgba(30, 41, 59, .12); }
+.now.today { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
+.now .top { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.now h3 { margin-bottom: 2px; }
+.fill { margin-top: 8px; font-size: 14px; }
+.fill.big { margin: 8px 0 6px; }
+
+.sum-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.sum-line { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; padding: 6px 8px; margin: 0 -8px; border-radius: 6px; cursor: pointer; }
+.sum-line:hover { background: #f1f4fa; box-shadow: none; }
+
+/* ---------- 多上課日／成班 ---------- */
+.dates { display: flex; flex-wrap: wrap; gap: 3px; max-width: 230px; }
+.dchip { font-size: 12px; padding: 0 7px; border-radius: 6px; background: var(--primary-soft); color: var(--primary); }
+.dchip.off { background: #f1f3f5; color: #868e96; text-decoration: line-through; }
+.alert-row { box-shadow: var(--shadow); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 10px 14px; margin-bottom: 8px; border-radius: var(--radius); background: #fff6ea; border: 1px solid #f7dcb7; cursor: pointer; font-size: 14px; }
+.alert-row.risk { background: #fff1f0; border-color: #f6cdc9; }
+.alert-row .pill-tag { margin-left: auto; }
+.date-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.date-row .dt { flex: 1; }
+dialog label.chk { display: flex; align-items: center; gap: 4px; margin: 0; white-space: nowrap; }
+dialog label.chk input { width: auto; margin: 0; }
+.gen { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 14px; font-size: 13px; }
+.gen input { width: auto; }
+
+/* ---------- 月曆 ---------- */
+.cal-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.cal-head b { font-size: 16px; min-width: 110px; text-align: center; }
+.cal-scroll { overflow-x: auto; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(110px, 1fr)); min-width: 770px; }
+.cal-wd { text-align: center; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--muted); background: #f1f4fa; border-bottom: 1px solid var(--line); }
+.cal-cell { min-height: 96px; padding: 4px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.cal-cell:nth-child(7n+7) { border-right: 0; }
+.cal-cell.other { background: #f8f9fc; }
+.cal-cell.other .cal-day { color: #ced4da; }
+.cal-cell.today { background: #f0f2fe; }
+.cal-cell.today .cal-day { background: var(--primary); color: #fff; }
+.cal-day { display: inline-block; min-width: 22px; padding: 0 5px; margin-bottom: 3px; border-radius: 11px; font-size: 12px; text-align: center; color: var(--muted); }
+/* 每個課程一個柔和色（由 --bg / --bd / --tx 指定），狀態用右上角圓點 */
+.cal-item { position: relative; margin-bottom: 3px; padding: 3px 14px 3px 7px; border-radius: 8px; font-size: 12px; line-height: 1.35; cursor: pointer; background: var(--bg); color: var(--tx); border-left: 4px solid var(--bd); }
+.cal-item span { font-size: 11px; opacity: .85; }
+.cal-item:hover { filter: brightness(.97); box-shadow: 0 2px 6px rgba(30, 41, 59, .14); }
+.cal-item.past { opacity: .55; }
+.cal-item.off { background: #fff; border: 1px dashed var(--bd); border-left: 4px dashed var(--bd); color: #868e96; }
+.sdot { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: #adb5bd; }
+.sdot.full { background: #2f8fa8; } .sdot.formed { background: #3a9a6b; } .sdot.unformed { background: #e8913a; } .sdot.risk { background: #d6564f; } .sdot.past { background: #aab2bd; }
+.legend .sdot { position: static; display: inline-block; margin-right: 4px; vertical-align: 0; }
+.swatch { display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: var(--bg); border-left: 4px solid var(--bd); margin-right: 5px; vertical-align: -2px; }
+
+/* ---------- 匯入訂單 ---------- */
+.imp-cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.imp-cols label, .unm select { font-size: 13px; color: var(--muted); }
+.imp-cols select, .imp-cols input { display: block; margin-top: 3px; }
+.unm { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.unm:last-of-type { margin-bottom: 12px; }
+.imp-sum { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.info-done { background: #e4f4ec; border-color: #b7dfca; }
+@media (max-width: 600px) { .unm { grid-template-columns: 1fr; } }
+
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>📚 實體課務管理系統</h1>
+    <nav id="nav">
+      <a href="#dashboard" data-view="dashboard">總覽</a>
+      <a href="#courses" data-view="courses">課程</a>
+      <a href="#sessions" data-view="sessions">場次</a>
+      <a href="#registrations" data-view="registrations">報名名單</a>
+      <a href="#import" data-view="import">匯入訂單</a>
+      <a href="#logs" data-view="logs">異動紀錄</a>
+      <a href="#settings" data-view="settings">設定</a>
+    </nav>
+  </header>
+
+  <main id="view"></main>
+
+  <dialog id="modal"></dialog>
+
+  <!-- SheetJS：讓瀏覽器能讀 Excel(.xlsx)，只用在「匯入訂單」 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+/*
+ * 資料儲存層
+ * 目前存在瀏覽器 localStorage。之後要改接線上資料庫（例如 Google Sheets、Firebase、Supabase），
+ * 只要改寫這個檔案的 load / save，app.js 不用動。
+ */
+const Store = {
+  KEY: 'course-admin-v1',
+
+  load() {
+    try {
+      const raw = localStorage.getItem(this.KEY);
+      if (raw) return this.migrate(JSON.parse(raw));
+    } catch (e) {
+      console.warn('讀取資料失敗，改用預設資料', e);
+    }
+    const data = this.initial();
+    this.save(data);
+    return data;
+  },
+
+  save(data) {
+    localStorage.setItem(this.KEY, JSON.stringify(data));
+  },
+
+  // 舊版資料升級：單一日期 → 多個上課日；補上成班人數等新欄位
+  migrate(d) {
+    d.logs = d.logs || [];
+    d.settings = d.settings || { refundRules: this.defaultRules() };
+    d.settings.ignoredProducts = d.settings.ignoredProducts || [];
+    d.sessions.forEach(s => {
+      if (!s.dates) { s.dates = s.date ? [{ date: s.date, off: false }] : []; delete s.date; }
+      if (s.minEnroll == null) s.minEnroll = 1;
+      s.name = s.name || '';
+      s.productName = s.productName || '';
+      s.decideBy = s.decideBy || '';
+    });
+    return d;
+  },
+
+  // 預設退費規則：開課前至少 N 天 → 退 X%（由大到小比對，符合的第一條生效）
+  defaultRules() {
+    return [
+      { minDays: 7, percent: 100 },
+      { minDays: 3, percent: 50 },
+      { minDays: 0, percent: 0 }
+    ];
+  },
+
+  empty() {
+    return { courses: [], sessions: [], registrations: [], logs: [], settings: { refundRules: this.defaultRules(), ignoredProducts: [] } };
+  },
+
+  // 「休」= 該日不上課（不算堂數）
+  dates(list) {
+    return list.map(x => (typeof x === 'string' ? { date: x, off: false } : { date: x[0], off: true }));
+  },
+
+  // 你的實際課程。空白的欄位（時間、地點、價格、平台商品名稱）請到「場次」頁補上
+  initial() {
+    const d = this.empty();
+    d.courses = [
+      { id: 'c-taichi', name: '太極課程', topic: '太極', image: '', description: '' },
+      { id: 'c-dance', name: '跳舞課程', topic: '舞蹈', image: '', description: '' },
+      { id: 'c-golf', name: '高爾夫球課', topic: '高爾夫', image: '', description: '' }
+    ];
+    d.sessions = [
+      {
+        id: 's-dance-oct', courseId: 'c-dance', name: '10月場次',
+        dates: this.dates(['2026-10-12', ['2026-10-19'], '2026-10-26', '2026-11-02', '2026-11-09', '2026-11-16', '2026-11-23']),
+        time: '', duration: 3, location: '', instructor: '', price: 6600, minEnroll: 8, capacity: 20, decideBy: '', productName: ''
+      },
+      {
+        id: 's-taichi-dec', courseId: 'c-taichi', name: '12月場次',
+        dates: this.dates(['2026-12-13', '2026-12-20', '2026-12-27', ['2027-01-03'], '2027-01-10', ['2027-01-17'], '2027-01-24', '2027-01-31']),
+        time: '', duration: 3, location: '', instructor: '', price: 4800, minEnroll: 5, capacity: 10, decideBy: '', productName: ''
+      },
+      {
+        id: 's-golf-oct', courseId: 'c-golf', name: '10月場次',
+        dates: this.dates(['2026-10-10', '2026-10-18', '2026-10-25']),
+        time: '', duration: 3, location: '', instructor: '', price: 8000, minEnroll: 8, capacity: 20, decideBy: '', productName: ''
+      }
+    ];
+    return d;
+  },
+
+  // 範例資料（含假學員），用來看儀表板各種狀態的樣子
+  sample() {
+    const day = n => {
+      const d = new Date();
+      d.setDate(d.getDate() + n);
+      const p = x => String(x).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    };
+    const weekly = (start, n, offIdx = []) => this.dates(Array.from({ length: n }, (_, i) => offIdx.includes(i) ? [day(start + i * 7)] : day(start + i * 7)));
+    const data = this.empty();
+    data.courses = [
+      { id: 'c1', name: '太極課程', topic: '太極', image: '', description: '' },
+      { id: 'c2', name: '跳舞課程', topic: '舞蹈', image: '', description: '' },
+      { id: 'c3', name: '高爾夫球課', topic: '高爾夫', image: '', description: '' }
+    ];
+    data.sessions = [
+      { id: 's1', courseId: 'c1', name: '下個月場次', dates: weekly(14, 8, [3, 5]), time: '09:00', duration: 2, location: '台北・大安公園', instructor: '林老師', price: 4800, minEnroll: 5, capacity: 10, decideBy: day(8), productName: '' },
+      { id: 's2', courseId: 'c2', name: '本期場次', dates: weekly(-7, 7, [2]), time: '19:00', duration: 2, location: '台北・信義教室', instructor: '王老師', price: 6600, minEnroll: 8, capacity: 20, decideBy: day(-10), productName: '' },
+      { id: 's3', courseId: 'c3', name: '下週場次', dates: this.dates([day(6), day(17)]), time: '14:00', duration: 4, location: '桃園・球場', instructor: '陳教練', price: 5200, minEnroll: 8, capacity: 20, decideBy: day(2), productName: '' }
+    ];
+    const now = new Date().toISOString();
+    const add = (sid, n, price, tag) => Array.from({ length: n }, (_, i) => data.registrations.push({
+      id: `r-${sid}-${i}`, sessionId: sid, name: `${tag}${i + 1}`, phone: '', email: '', paid: price, status: 'active', createdAt: now
+    }));
+    add('s1', 3, 4800, '太極學員');
+    add('s2', 12, 6600, '舞蹈學員');
+    add('s3', 6, 5200, '球友');
+    return data;
+  }
+};
+
+/* 實體課務管理系統：主程式 */
+let db = Store.load();
+function ymdMonth(d = new Date()) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
+const ui = { sessionCourse: '', regSession: '', regStatus: '', regQ: '', calMonth: ymdMonth() };
+
+/* ---------- 小工具 ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = p => p + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
+const money = n => 'NT$ ' + Number(n || 0).toLocaleString();
+const commit = () => Store.save(db);
+const byId = (arr, id) => arr.find(x => x.id === id);
+const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const shortDate = s => `${+s.slice(5, 7)}/${+s.slice(8)}`;
+
+function fmtDate(s) {
+  const d = new Date(s + 'T00:00');
+  return `${s}（${WEEK[d.getDay()]}）`;
+}
+// 距離某天還有幾天（今天 = 0，已過為負數）
+function daysUntil(dateStr) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return Math.round((new Date(dateStr + 'T00:00') - today) / 86400000);
+}
+function log(type, text) {
+  db.logs.unshift({ id: uid('l'), at: new Date().toISOString(), type, text });
+}
+
+/* ---------- 場次：上課日、狀態 ---------- */
+const classDates = s => (s.dates || []).filter(d => !d.off).map(d => d.date).sort(); // 實際上課的日子（不含休）
+const startDate = s => classDates(s)[0] || '';
+const endDate = s => classDates(s).slice(-1)[0] || '';
+const courseName = id => byId(db.courses, id)?.name || '（課程已刪除）';
+const sessionTitle = s => courseName(s.courseId) + (s.name ? '｜' + s.name : '');
+const sessionLabel = s => `${sessionTitle(s)}｜${shortDate(startDate(s))} 起${s.location ? '｜' + s.location : ''}`;
+const sortSessions = arr => [...arr].sort((a, b) => startDate(a).localeCompare(startDate(b)));
+const activeRegs = sid => db.registrations.filter(r => r.sessionId === sid && r.status === 'active');
+const seatsLeft = s => s.capacity - activeRegs(s.id).length;
+const hasStarted = s => daysUntil(startDate(s)) < 0;   // 第一堂已經過了
+const hasEnded = s => daysUntil(endDate(s)) < 0;
+
+function startTime(s, base = new Date()) {
+  const [h, m] = (s.time || '00:00').split(':');
+  const t = new Date(base); t.setHours(+h, +m, 0, 0);
+  return t;
+}
+function endTime(s) {
+  const t = new Date(startTime(s).getTime() + (s.duration || 3) * 3600000);
+  return `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+}
+// 今天有課時：尚未開始／進行中／已結束
+function todayState(s) {
+  const start = startTime(s), end = new Date(start.getTime() + (s.duration || 3) * 3600000), now = new Date();
+  return now < start ? 'wait' : now <= end ? 'live' : 'done';
+}
+// 還缺哪些資料，提醒你補上
+function missingInfo(s) {
+  const m = [];
+  if (!s.time) m.push('上課時間');
+  if (!s.location) m.push('地點');
+  if (s.price == null) m.push('價格');
+  if (!s.productName) m.push('平台商品名稱');
+  return m;
+}
+
+// 招生狀態：額滿／已成班／未成班（快到決定日會升級為警示）
+function fillInfo(s) {
+  const n = activeRegs(s.id).length, min = s.minEnroll || 1, cap = s.capacity;
+  const base = { n, min, cap, need: Math.max(0, min - n) };
+  if (hasEnded(s)) return { ...base, cls: 'past', label: '已結束' };
+  if (n >= cap) return { ...base, cls: 'full', label: '額滿' };
+  if (n >= min) return { ...base, cls: 'formed', label: '已成班' };
+  const deadline = s.decideBy || startDate(s);
+  const left = daysUntil(deadline);
+  if (left <= 3) return { ...base, cls: 'risk', label: `未成班・差 ${base.need} 人・${left < 0 ? '已逾期' : left === 0 ? '今天截止' : left + ' 天後截止'}` };
+  return { ...base, cls: 'unformed', label: `未成班・差 ${base.need} 人` };
+}
+const statusTag = f => `<span class="pill-tag ${f.cls}">${esc(f.label)}</span>`;
+// 進度條：紅線是成班人數的位置
+const fillBar = (n, min, cap) => `<span class="bar"><i style="width:${cap ? Math.min(100, n / cap * 100) : 0}%"></i><u style="left:${cap ? Math.min(100, min / cap * 100) : 0}%"></u></span>`;
+
+function datesChips(s) {
+  const total = classDates(s).length;
+  return `<div class="dates">${(s.dates || []).slice().sort((a, b) => a.date.localeCompare(b.date))
+    .map(d => `<span class="dchip ${d.off ? 'off' : ''}" title="${fmtDate(d.date)}${d.off ? ' 休課' : ''}">${shortDate(d.date)}${d.off ? ' 休' : ''}</span>`).join('')}</div>
+    <div class="muted">共 ${total} 堂</div>`;
+}
+
+// 依退費規則算出比例（以第一堂課的日期計算）
+function refundPercent(days) {
+  if (days < 0) return 0;
+  const rules = [...db.settings.refundRules].sort((a, b) => b.minDays - a.minDays);
+  const hit = rules.find(r => days >= r.minDays);
+  return hit ? hit.percent : 0;
+}
+
+/* ---------- 對話框 ---------- */
+const modal = $('#modal');
+function openModal(title, html, onSubmit, submitText = '儲存') {
+  modal.innerHTML = `<form><h2>${esc(title)}</h2>${html}
+    <div class="actions"><button type="button" data-cancel>取消</button><button class="primary">${esc(submitText)}</button></div></form>`;
+  const form = $('form', modal);
+  $('[data-cancel]', modal).onclick = () => modal.close();
+  form.onsubmit = e => {
+    e.preventDefault();
+    if (onSubmit(new FormData(form), form) !== false) modal.close();
+  };
+  modal.showModal();
+  return form;
+}
+const field = (label, name, val = '', attrs = '') => `<label>${label}<input name="${name}" value="${esc(val)}" ${attrs}></label>`;
+const options = (items, cur) => items.map(([v, t]) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(t)}</option>`).join('');
+
+/* ---------- 畫面：總覽（含時程儀表板） ---------- */
+// 需要關注：還沒成班的場次
+function viewAlerts() {
+  const list = db.sessions.map(s => ({ s, f: fillInfo(s) })).filter(x => x.f.cls === 'unformed' || x.f.cls === 'risk')
+    .sort((a, b) => (a.s.decideBy || startDate(a.s)).localeCompare(b.s.decideBy || startDate(b.s)));
+  const rows = list.map(({ s, f }) => {
+    const dl = s.decideBy || startDate(s);
+    return `<div class="alert-row ${f.cls}" data-act="goto-session" data-id="${s.id}">
+      <b>${esc(sessionTitle(s))}</b>　已報 ${f.n} 人，成班要 ${f.min} 人，<b>還差 ${f.need} 人</b>
+      <span class="muted">${s.decideBy ? '成班決定日' : '開課日'} ${shortDate(dl)}（${daysUntil(dl) < 0 ? '已過 ' + -daysUntil(dl) : '還有 ' + daysUntil(dl)} 天）</span>
+      ${statusTag(f)}</div>`;
+  }).join('');
+  return `<div class="section"><h3>成班提醒 <span class="muted">還沒達到成班人數的場次</span></h3>
+    ${rows || '<div class="card empty">目前沒有需要關注的場次 ✓</div>'}</div>`;
+}
+
+function viewNow() {
+  const today = ymd(new Date());
+  const rel = sortSessions(db.sessions.filter(s => !hasEnded(s) && daysUntil(startDate(s)) <= 7));
+  const card = s => {
+    const a = daysUntil(startDate(s)), f = fillInfo(s), cds = classDates(s);
+    const total = cds.length, done = cds.filter(d => d <= today).length;
+    let when;
+    if (cds.includes(today)) {
+      const st = todayState(s);
+      when = st === 'live' ? '<span class="tag live">● 進行中</span>' : st === 'wait' ? `<span class="tag warn">今天${s.time ? ' ' + esc(s.time) : ''}上課</span>` : '<span class="tag gray">今日課程已結束</span>';
+      when += ` <span class="muted">第 ${done}/${total} 堂</span>`;
+    } else if (a <= 0) {
+      const next = cds.find(d => d > today);
+      when = `<span class="tag">上課中</span> <span class="muted">已上 ${done}/${total} 堂，下堂 ${next ? shortDate(next) : '—'}</span>`;
+    } else when = `<span class="tag">${a} 天後開課</span>`;
+    return `<div class="card now ${cds.includes(today) ? 'today' : ''}" data-act="goto-session" data-id="${s.id}">
+      <div class="top"><span>${when}</span>${statusTag(f)}</div>
+      <h3>${esc(sessionTitle(s))}</h3>
+      <div class="muted">${shortDate(startDate(s))} – ${shortDate(endDate(s))}　共 ${total} 堂${s.time ? '　' + esc(s.time) + '–' + endTime(s) : ''}</div>
+      <div class="muted">📍 ${esc(s.location || '地點待補')}　👤 ${esc(s.instructor || '未指定')}</div>
+      <div class="fill"><b>${f.n}</b> 人　<span class="muted">成班 ${f.min}／上限 ${f.cap}</span>${fillBar(f.n, f.min, f.cap)}</div></div>`;
+  };
+  let body = rel.map(card).join('');
+  if (!body) {
+    const next = sortSessions(db.sessions.filter(s => !hasEnded(s)))[0];
+    body = `<div class="card empty" style="grid-column:1/-1">未來 7 天沒有開課${next ? `，下一個是 ${shortDate(startDate(next))} 開課的「${esc(sessionTitle(next))}」` : ''}</div>`;
+  }
+  return `<div class="section"><h3>現在開什麼課 <span class="muted">上課中，以及 7 天內開課</span></h3><div class="now-grid">${body}</div></div>`;
+}
+
+// 課程配色（柔和色）：[底色, 左邊線, 文字]，依課程順序輪流使用
+const COURSE_COLORS = [
+  ['#e6e9fb', '#8e9bea', '#34439c'], ['#dff3ea', '#7cc3a1', '#216b4c'], ['#fdebd9', '#efae78', '#8f511d'],
+  ['#efe6f8', '#b595dc', '#5d3a8c'], ['#def0f8', '#7fbfdc', '#216580'], ['#fbe3e8', '#e69aab', '#8c3347']
+];
+const courseColor = id => {
+  const [bg, bd, tx] = COURSE_COLORS[Math.max(0, db.courses.findIndex(c => c.id === id)) % COURSE_COLORS.length];
+  return `--bg:${bg};--bd:${bd};--tx:${tx}`;
+};
+
+// 月曆：每個上課日顯示當天有哪些課，顏色代表課程，右上角圓點代表招生狀態
+function calendarHTML() {
+  const [Y, M] = ui.calMonth.split('-').map(Number);
+  const first = new Date(Y, M - 1, 1);
+  const gridStart = new Date(Y, M - 1, 1 - first.getDay());          // 從該月 1 號所在週的週日開始
+  const weeks = Math.ceil((first.getDay() + new Date(Y, M, 0).getDate()) / 7);
+  const today = ymd(new Date());
+
+  // 日期 → 當天的課
+  const byDay = {};
+  db.sessions.forEach(s => (s.dates || []).forEach(d => (byDay[d.date] = byDay[d.date] || []).push({ s, off: d.off })));
+
+  let cells = '';
+  for (let i = 0; i < weeks * 7; i++) {
+    const d = new Date(gridStart); d.setDate(gridStart.getDate() + i);
+    const key = ymd(d);
+    const items = (byDay[key] || []).sort((a, b) => (a.s.time || '').localeCompare(b.s.time || '')).map(({ s, off }) => {
+      if (off) return `<div class="cal-item off" style="${courseColor(s.courseId)}" data-act="goto-session" data-id="${s.id}" title="${esc(sessionTitle(s))}（休課）">${esc(courseName(s.courseId))}<br>休課</div>`;
+      const f = fillInfo(s), cds = classDates(s);
+      const tip = `${sessionTitle(s)}\n第 ${cds.indexOf(key) + 1}/${cds.length} 堂${s.time ? '　' + s.time + '–' + endTime(s) : ''}\n${s.location || '地點待補'}\n已報 ${f.n} 人｜成班 ${f.min}｜上限 ${f.cap}\n${f.label}`;
+      return `<div class="cal-item ${f.cls === 'past' ? 'past' : ''}" style="${courseColor(s.courseId)}" data-act="goto-session" data-id="${s.id}" title="${esc(tip)}">
+        <i class="sdot ${f.cls}"></i>
+        <b>${esc(courseName(s.courseId))}</b>${s.time ? ' ' + esc(s.time) : ''}<br>
+        <span>第${cds.indexOf(key) + 1}/${cds.length}堂・${f.n}人（成班${f.min}）</span></div>`;
+    }).join('');
+    cells += `<div class="cal-cell ${d.getMonth() !== M - 1 ? 'other' : ''} ${key === today ? 'today' : ''}"><div class="cal-day">${d.getDate()}</div>${items}</div>`;
+  }
+  return `<div class="cal-head">
+      <button class="sm" data-act="cal-prev">‹ 上個月</button>
+      <b>${Y} 年 ${M} 月</b>
+      <button class="sm" data-act="cal-next">下個月 ›</button>
+      <button class="sm" data-act="cal-today">回到本月</button>
+    </div>
+    <div class="cal-scroll"><div class="cal">
+      ${WEEK.map(w => `<div class="cal-wd">${w}</div>`).join('')}${cells}
+    </div></div>`;
+}
+function viewCalendar() {
+  const courses = db.courses.map(c => `<span><i class="swatch" style="${courseColor(c.id)}"></i>${esc(c.name)}</span>`).join('');
+  const status = `<span><i class="sdot full"></i>額滿</span><span><i class="sdot formed"></i>已成班</span><span><i class="sdot unformed"></i>未成班</span><span><i class="sdot risk"></i>未成班・快截止</span><span><i class="sdot past"></i>已結束</span>`;
+  return `<div class="section"><h3>課程月曆 <span class="muted">顏色 = 課程，右上角圓點 = 招生狀態；點一下可看名單</span></h3>
+    <div class="legend">${courses}</div><div class="legend">${status}</div>
+    <div class="card" id="cal-wrap">${calendarHTML()}</div></div>`;
+}
+
+function viewCourseSummary() {
+  const cards = db.courses.map(c => {
+    const all = db.sessions.filter(s => s.courseId === c.id);
+    const up = sortSessions(all.filter(s => !hasEnded(s)));
+    return `<div class="card sum">
+      <div class="sum-head"><h3>${esc(c.name)}</h3><span class="tag">${esc(c.topic || '未分類')}</span></div>
+      <div class="muted">進行中／未開課 ${up.length} 個場次｜已結束 ${all.length - up.length} 個</div>
+      ${up.map(s => { const f = fillInfo(s); return `<div class="sum-line" data-act="goto-session" data-id="${s.id}">
+        <span><b>${esc(s.name || '場次')}</b> ${shortDate(startDate(s))}–${shortDate(endDate(s))}<br><span class="muted">${esc(s.location || '地點待補')}</span></span>
+        <span style="text-align:right">${f.n} / 成班 ${f.min} / 上限 ${f.cap}${fillBar(f.n, f.min, f.cap)}<br>${statusTag(f)}</span></div>`; }).join('') || '<div class="muted" style="margin-top:8px">目前沒有未結束的場次</div>'}
+    </div>`;
+  }).join('');
+  return `<div class="section"><h3>各課程招生概況</h3><div class="grid">${cards || '<div class="card empty">還沒有課程</div>'}</div></div>`;
+}
+
+function viewDashboard() {
+  const active = db.registrations.filter(r => r.status === 'active');
+  const net = db.registrations.reduce((n, r) => n + (r.status === 'active' ? r.paid : r.status === 'refunded' ? r.paid - (r.refundAmount || 0) : 0), 0);
+  const refunded = db.registrations.reduce((n, r) => n + (r.status === 'refunded' ? r.refundAmount || 0 : 0), 0);
+  const open = db.sessions.filter(s => !hasEnded(s));
+  const pending = open.filter(s => ['unformed', 'risk'].includes(fillInfo(s).cls)).length;
+  return `
+  <h2>總覽</h2>
+  <div class="stats">
+    <div class="card stat"><div class="num">${db.courses.length}</div><div class="lbl">課程數</div></div>
+    <div class="card stat"><div class="num">${open.length}</div><div class="lbl">未結束場次</div></div>
+    <div class="card stat"><div class="num" style="color:${pending ? 'var(--danger)' : 'var(--ok)'}">${pending}</div><div class="lbl">尚未成班場次</div></div>
+    <div class="card stat"><div class="num">${active.length}</div><div class="lbl">有效報名人數</div></div>
+    <div class="card stat"><div class="num">${money(net)}</div><div class="lbl">淨收入（已扣退費、取消）</div></div>
+    <div class="card stat"><div class="num">${money(refunded)}</div><div class="lbl">累計退費</div></div>
+  </div>
+  ${viewAlerts()}${viewNow()}${viewCourseSummary()}${viewCalendar()}`;
+}
+
+/* ---------- 畫面：課程 ---------- */
+function viewCourses() {
+  return `
+  <div class="head"><h2>課程</h2><button class="primary" data-act="course-add">＋ 新增課程</button></div>
+  <div class="grid">
+    ${db.courses.map(c => {
+      const n = db.sessions.filter(s => s.courseId === c.id).length;
+      const img = c.image ? 'images/' + esc(c.image) : 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMjAwIj4KICA8cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U4ZWVmYyIvPgogIDx0ZXh0IHg9IjIwMCIgeT0iMTE1IiBmb250LXNpemU9IjY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5OaPC90ZXh0Pgo8L3N2Zz4K';
+      return `<div class="card course">
+        <img src="${img}" alt="" onerror="this.onerror=null;this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMjAwIj4KICA8cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U4ZWVmYyIvPgogIDx0ZXh0IHg9IjIwMCIgeT0iMTE1IiBmb250LXNpemU9IjY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5OaPC90ZXh0Pgo8L3N2Zz4K'">
+        <div class="body">
+          <span class="tag">${esc(c.topic || '未分類')}</span>
+          <h3 style="margin-top:6px">${esc(c.name)}</h3>
+          <div class="desc">${esc(c.description)}</div>
+          <div class="muted">共 ${n} 個場次</div>
+        </div>
+        <div class="foot">
+          <button class="sm" data-act="session-add" data-id="${c.id}">＋ 場次</button>
+          <button class="sm" data-act="course-edit" data-id="${c.id}">編輯</button>
+          <button class="sm danger" data-act="course-del" data-id="${c.id}">刪除</button>
+        </div></div>`;
+    }).join('') || '<div class="empty">還沒有課程，先新增一個吧</div>'}
+  </div>`;
+}
+
+function courseForm(c = {}) {
+  const t = c.id ? '編輯課程' : '新增課程';
+  openModal(t, `
+    ${field('課程名稱', 'name', c.name, 'required')}
+    ${field('主題分類', 'topic', c.topic, 'placeholder="例如：太極、舞蹈"')}
+    ${field('圖片檔名（放在 images/ 資料夾，例如 taichi.jpg，可留空）', 'image', c.image)}
+    <label>課程簡介<textarea name="description" rows="3">${esc(c.description)}</textarea></label>`,
+  fd => {
+    const v = Object.fromEntries(fd);
+    if (c.id) { Object.assign(c, v); log('課程', `編輯課程：${v.name}`); }
+    else { db.courses.push({ id: uid('c'), ...v }); log('課程', `新增課程：${v.name}`); }
+    commit(); render();
+  });
+}
+
+/* ---------- 畫面：場次 ---------- */
+function viewSessions() {
+  const list = sortSessions(db.sessions.filter(s => !ui.sessionCourse || s.courseId === ui.sessionCourse));
+  return `
+  <div class="head"><h2>場次</h2>
+    <div class="toolbar">
+      <select id="f-course"><option value="">全部課程</option>${options(db.courses.map(c => [c.id, c.name]), ui.sessionCourse)}</select>
+      <button class="primary" data-act="session-add">＋ 新增場次</button>
+    </div></div>
+  <div class="table-wrap"><table>
+    <tr><th>課程／場次</th><th>上課日</th><th>時間／地點</th><th>價格</th><th>人數（成班／上限）</th><th>狀態</th><th>操作</th></tr>
+    ${list.map(s => {
+      const f = fillInfo(s), miss = missingInfo(s);
+      return `<tr>
+      <td><b>${esc(courseName(s.courseId))}</b><div>${esc(s.name)}</div>
+        ${s.productName ? `<div class="muted">平台：${esc(s.productName)}</div>` : ''}
+        ${miss.length ? `<div><span class="tag warn">待補：${miss.join('、')}</span></div>` : ''}</td>
+      <td>${datesChips(s)}</td>
+      <td>${s.time ? esc(s.time) + '–' + endTime(s) : '<span class="muted">時間待補</span>'}<div class="muted">${esc(s.location || '地點待補')}</div><div class="muted">${esc(s.instructor)}</div></td>
+      <td>${s.price == null ? '<span class="muted">待補</span>' : money(s.price)}</td>
+      <td>${f.n} 人<div class="muted">成班 ${f.min}／上限 ${f.cap}</div>${fillBar(f.n, f.min, f.cap)}
+        ${s.decideBy ? `<div class="muted">決定日 ${shortDate(s.decideBy)}</div>` : ''}</td>
+      <td>${statusTag(f)}</td>
+      <td>
+        <button class="sm primary" data-act="reg-add" data-id="${s.id}">報名</button>
+        <button class="sm" data-act="session-edit" data-id="${s.id}">編輯</button>
+        <button class="sm danger" data-act="session-del" data-id="${s.id}">刪除</button>
+      </td></tr>`;
+    }).join('') || '<tr><td colspan="7" class="empty">沒有符合的場次</td></tr>'}
+  </table></div>`;
+}
+
+const dateRow = (d = { date: '', off: false }) => `<div class="date-row">
+  <input type="date" class="dt" value="${esc(d.date)}" required>
+  <label class="chk"><input type="checkbox" class="off" ${d.off ? 'checked' : ''}> 休課</label>
+  <button type="button" class="sm danger" data-rm>✕</button></div>`;
+
+function sessionForm(s = {}, courseId = '') {
+  if (!db.courses.length) return alert('請先新增課程');
+  const t = s.id ? '編輯場次' : '新增場次';
+  const form = openModal(t, `
+    <label>所屬課程<select name="courseId" required>${options(db.courses.map(c => [c.id, c.name]), s.courseId || courseId)}</select></label>
+    ${field('場次名稱', 'name', s.name, 'placeholder="例如：10月場次"')}
+    <label>上課日期（勾選「休課」的日子不算堂數）</label>
+    <div id="dates">${(s.dates || [{}]).map(d => dateRow(d.date ? d : undefined)).join('')}</div>
+    <div class="gen">
+      <button type="button" class="sm" id="add-date">＋ 新增一天</button>
+      <span class="muted">或自動產生每週：</span>
+      <input type="date" id="gen-start"> 共 <input type="number" id="gen-n" min="1" max="30" value="6" style="width:64px"> 週
+      <button type="button" class="sm" id="gen-go">產生</button>
+    </div>
+    <div class="row2">${field('上課時間', 'time', s.time, 'type="time"')}${field('每堂時數（小時）', 'duration', s.duration || 3, 'type="number" min="0.5" step="0.5" required')}</div>
+    ${field('地點', 'location', s.location, 'placeholder="例如：台北・信義教室"')}
+    ${field('講師', 'instructor', s.instructor)}
+    <div class="row2">${field('價格（元）', 'price', s.price ?? '', 'type="number" min="0"')}${field('成班決定日', 'decideBy', s.decideBy, 'type="date"')}</div>
+    <div class="row2">${field('成班人數', 'minEnroll', s.minEnroll || 1, 'type="number" min="1" required')}${field('可收人數（上限）', 'capacity', s.capacity, 'type="number" min="1" required')}</div>
+    ${field('平台商品名稱（要跟平台 Excel 的「商品名稱」一字不差，匯入訂單時用來自動對應）', 'productName', s.productName)}`,
+  (fd, f) => {
+    const v = Object.fromEntries(fd);
+    v.price = v.price === '' ? null : +v.price;
+    v.minEnroll = +v.minEnroll; v.capacity = +v.capacity; v.duration = +v.duration;
+    const dates = [...f.querySelectorAll('.date-row')].map(r => ({ date: $('.dt', r).value, off: $('.off', r).checked }))
+      .filter(d => d.date).sort((a, b) => a.date.localeCompare(b.date));
+    if (!dates.some(d => !d.off)) { alert('至少要有一個上課日（非休課）'); return false; }
+    if (new Set(dates.map(d => d.date)).size !== dates.length) { alert('上課日期有重複'); return false; }
+    if (v.minEnroll > v.capacity) { alert('成班人數不能大於可收人數'); return false; }
+    if (s.id && v.capacity < activeRegs(s.id).length) { alert(`目前已有 ${activeRegs(s.id).length} 人報名，可收人數不能低於這個數字`); return false; }
+    v.dates = dates;
+    if (s.id) { Object.assign(s, v); log('場次', `編輯場次：${sessionLabel(s)}`); }
+    else { const n = { id: uid('s'), ...v }; db.sessions.push(n); log('場次', `新增場次：${sessionLabel(n)}`); }
+    commit(); render();
+  });
+  const box = $('#dates', form);
+  form.addEventListener('click', e => { if (e.target.matches('[data-rm]')) e.target.closest('.date-row').remove(); });
+  $('#add-date', form).onclick = () => box.insertAdjacentHTML('beforeend', dateRow());
+  $('#gen-go', form).onclick = () => {
+    const start = $('#gen-start', form).value, n = +$('#gen-n', form).value;
+    if (!start) return alert('請先選起始日');
+    for (let i = 0; i < n; i++) {
+      const d = new Date(start + 'T00:00'); d.setDate(d.getDate() + i * 7);
+      box.insertAdjacentHTML('beforeend', dateRow({ date: ymd(d), off: false }));
+    }
+  };
+}
+
+/* ---------- 畫面：報名名單 ---------- */
+const STATUS = { active: '<span class="tag ok">已報名</span>', refunded: '<span class="tag gray">已退費</span>', cancelled: '<span class="tag danger">已取消</span>' };
+const STATUS_TEXT = { active: '已報名', refunded: '已退費', cancelled: '已取消' };
+function filteredRegs() {
+  const q = ui.regQ.trim().toLowerCase();
+  return db.registrations
+    .filter(r => !ui.regSession || r.sessionId === ui.regSession)
+    .filter(r => !ui.regStatus || r.status === ui.regStatus)
+    .filter(r => !q || [r.name, r.phone, r.email].some(x => (x || '').toLowerCase().includes(q)))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+function regTable() {
+  const list = filteredRegs();
+  return `<table>
+    <tr><th>學員</th><th>聯絡方式</th><th>課程場次</th><th>實付</th><th>狀態</th><th>操作</th></tr>
+    ${list.map(r => {
+      const s = byId(db.sessions, r.sessionId);
+      return `<tr>
+        <td>${esc(r.name)}${r.orderDate ? `<div class="muted">訂單 ${esc(r.orderDate)}</div>` : ''}</td>
+        <td>${esc(r.phone)}<div class="muted">${esc(r.email)}</div></td>
+        <td>${s ? esc(sessionLabel(s)) : '（場次已刪除）'}</td>
+        <td>${money(r.paid)}${r.refundAmount ? `<div class="muted">已退 ${money(r.refundAmount)}</div>` : ''}</td>
+        <td>${STATUS[r.status]}</td>
+        <td>${r.status === 'active' ? `
+          <button class="sm" data-act="reg-transfer" data-id="${r.id}">換場次</button>
+          <button class="sm danger" data-act="reg-refund" data-id="${r.id}">退費</button>` : '<span class="muted">—</span>'}</td></tr>`;
+    }).join('') || '<tr><td colspan="6" class="empty">沒有符合的報名資料</td></tr>'}
+  </table>`;
+}
+function viewRegistrations() {
+  const sess = sortSessions(db.sessions);
+  return `
+  <div class="head"><h2>報名名單</h2>
+    <div class="toolbar">
+      <input id="f-q" placeholder="搜尋姓名／電話／Email" value="${esc(ui.regQ)}">
+      <select id="f-session"><option value="">全部場次</option>${options(sess.map(s => [s.id, sessionLabel(s)]), ui.regSession)}</select>
+      <select id="f-status"><option value="">全部狀態</option>${options([['active', '已報名'], ['refunded', '已退費'], ['cancelled', '已取消']], ui.regStatus)}</select>
+      <button data-act="export-regs">匯出目前名單 (CSV)</button>
+    </div></div>
+  <div class="table-wrap" id="regList">${regTable()}</div>`;
+}
+
+/* 新增報名 */
+function regForm(sessionId) {
+  const s = byId(db.sessions, sessionId);
+  if (hasStarted(s)) return alert('這個場次已經開課，無法再報名');
+  if (seatsLeft(s) <= 0) return alert('這個場次已額滿');
+  openModal('新增報名', `
+    <div class="info">${esc(sessionLabel(s))}<br>剩餘名額 <b>${seatsLeft(s)}</b> 位，原價 <b>${s.price == null ? '待補' : money(s.price)}</b></div>
+    ${field('學員姓名', 'name', '', 'required')}
+    <div class="row2">${field('電話', 'phone')}${field('Email', 'email', '', 'type="email"')}</div>
+    ${field('實收金額（元）', 'paid', s.price ?? '', 'type="number" min="0" required')}`,
+  fd => {
+    const v = Object.fromEntries(fd);
+    db.registrations.push({ id: uid('r'), sessionId, name: v.name, phone: v.phone, email: v.email, paid: +v.paid, status: 'active', createdAt: new Date().toISOString() });
+    log('報名', `${v.name} 報名 ${sessionLabel(s)}，實收 ${money(v.paid)}`);
+    commit(); render();
+  }, '確認報名');
+}
+
+/* 退費 */
+function refundForm(regId) {
+  const r = byId(db.registrations, regId);
+  const s = byId(db.sessions, r.sessionId);
+  const days = s ? daysUntil(startDate(s)) : -1;
+  const pct = refundPercent(days);
+  const suggest = Math.round(r.paid * pct / 100);
+  const daysTxt = days < 0 ? '已開課' : `開課前 ${days} 天`;
+  openModal('辦理退費', `
+    <div class="info"><b>${esc(r.name)}</b>｜${s ? esc(sessionLabel(s)) : ''}<br>
+      實付 ${money(r.paid)}，${daysTxt}，依規則可退 <b>${pct}%</b>，建議退費 <b>${money(suggest)}</b></div>
+    ${field('實際退費金額（可手動調整）', 'amount', suggest, `type="number" min="0" max="${r.paid}" required`)}
+    ${field('備註（退費原因等）', 'note')}`,
+  fd => {
+    const amount = +fd.get('amount');
+    r.status = 'refunded'; r.refundAmount = amount; r.refundedAt = new Date().toISOString();
+    log('退費', `${r.name} 退出 ${s ? sessionLabel(s) : ''}，退費 ${money(amount)}（${daysTxt}，規則 ${pct}%）${fd.get('note') ? '，備註：' + fd.get('note') : ''}`);
+    commit(); render();
+  }, '確認退費');
+}
+
+/* 換場次 */
+function transferForm(regId) {
+  const r = byId(db.registrations, regId);
+  const from = byId(db.sessions, r.sessionId);
+  const targets = sortSessions(db.sessions.filter(t => t.courseId === from.courseId && t.id !== from.id && !hasStarted(t) && seatsLeft(t) > 0));
+  if (!targets.length) return alert('這個課程目前沒有其他可換的場次（需未開課且有名額）');
+  const priceOf = x => x.price ?? 0;
+  const diffOf = t => priceOf(t) - priceOf(from);
+  const form = openModal('更換場次', `
+    <div class="info"><b>${esc(r.name)}</b> 目前場次：<br>${esc(sessionLabel(from))}（原價 ${from.price == null ? '待補' : money(from.price)}）</div>
+    <label>換到哪個場次
+      <select name="to">${targets.map(t => `<option value="${t.id}">${esc(`${t.name || ''} ${shortDate(startDate(t))} 起｜${t.location || '地點待補'}｜${t.price == null ? '價格待補' : money(t.price)}｜剩 ${seatsLeft(t)} 位`)}</option>`).join('')}</select></label>
+    <label>補收差額（元，負數代表退差額）<input name="diff" type="number" required value="${diffOf(targets[0])}"></label>
+    ${field('備註', 'note')}`,
+  fd => {
+    const to = byId(db.sessions, fd.get('to'));
+    const diff = +fd.get('diff');
+    r.sessionId = to.id; r.paid += diff;
+    log('換場次', `${r.name} 由「${sessionLabel(from)}」換到「${sessionLabel(to)}」，差額 ${diff >= 0 ? '+' : ''}${money(diff)}${fd.get('note') ? '，備註：' + fd.get('note') : ''}`);
+    commit(); render();
+  }, '確認更換');
+  $('[name=to]', form).onchange = e => { $('[name=diff]', form).value = diffOf(byId(db.sessions, e.target.value)); };
+}
+
+
+/* ---------- 畫面：匯入平台訂單 ---------- */
+// 平台 Excel 的欄位：[內部名稱, 顯示名稱, 可能的欄位標題]
+const IMP_FIELDS = [
+  ['name', '學員姓名', ['姓名', '學員姓名', '購買人']],
+  ['product', '商品名稱', ['商品名稱', '課程名稱', '商品']],
+  ['paid', '實售金額', ['實售金額', '實付金額', '金額']],
+  ['date', '訂單日期', ['兌換時間', '報名日期', '訂購時間', '下單時間']],
+  ['phone', '手機', ['手機', '電話']],
+  ['member', '會員 id', ['udn 會員 id', '會員 id', '(鯨魚)會員代號', '會員代號']],
+  ['code', '商品編號', ['商品編號']],
+  ['status', '取消標示欄', ['訂單狀態', '狀態', '是否取消', '取消狀態', '取消', '異動', '備註']]
+];
+// 平台原本就有的 16 個欄位；多出來的那一欄就是「取消標示」
+const KNOWN_HEADERS = ['udn 會員 id', '(鯨魚)會員代號', '所屬館別', '姓名', '手機', '商品編號', '商品名稱', '來源', '商品售價', '優惠券折抵金額', '實售金額', '兌換時間', '導購代碼 affcode', '優惠代碼名稱', '優惠代碼', '線上/實體'];
+const imp = { file: '', headers: [], rows: [], cols: {}, cancelText: '取消', ops: [], skipped: 0, unmatched: new Map(), error: '', done: '' };
+const normText = s => String(s ?? '').replace(/\s+/g, ' ').trim();
+const toNum = v => Number(String(v ?? '').replace(/[^\d.-]/g, '')) || 0;
+
+function cellVal(row, col) {
+  const v = col ? row[col] : '';
+  return v instanceof Date ? ymd(v) : v;
+}
+
+function parseImport(buf, filename) {
+  imp.error = ''; imp.done = ''; imp.file = filename;
+  try {
+    if (typeof XLSX === 'undefined') throw new Error('Excel 讀取元件沒有載入，請確認網路連線後重新整理');
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    const sheetName = wb.SheetNames.find(n => !n.includes('對照')) || wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    imp.headers = (XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })[0] || []).map(String).filter(Boolean);
+    imp.rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true }).filter(r => Object.values(r).some(v => String(v).trim() !== ''));
+    if (!imp.rows.length) throw new Error('檔案裡沒有資料');
+    // 自動對應欄位
+    imp.cols = {};
+    IMP_FIELDS.forEach(([k, , cands]) => { imp.cols[k] = imp.headers.find(h => cands.includes(h)) || ''; });
+    if (!imp.cols.status) imp.cols.status = imp.headers.find(h => !KNOWN_HEADERS.includes(h)) || '';
+    analyzeImport();
+  } catch (e) {
+    imp.rows = []; imp.error = '讀取失敗：' + e.message;
+  }
+}
+
+function findRegByKey(key) {
+  return db.registrations.find(r => r.orderKey === key || (r.prevKeys || []).includes(key));
+}
+
+function analyzeImport() {
+  const c = imp.cols;
+  const ignored = new Set(db.settings.ignoredProducts || []);
+  const names = s => [s.productName, ...(s.aliases || [])].filter(Boolean).map(normText);
+  imp.unmatched = new Map();
+  const byKey = new Map();
+  imp.skipped = 0;
+
+  for (const row of imp.rows) {
+    const name = normText(cellVal(row, c.name)), product = normText(cellVal(row, c.product));
+    if (!name || !product) continue;
+    const s = db.sessions.find(x => names(x).includes(product));
+    if (!s) { if (!ignored.has(product)) imp.unmatched.set(product, (imp.unmatched.get(product) || 0) + 1); continue; }
+    const st = normText(cellVal(row, c.status));
+    const cancel = !!st && (!imp.cancelText || st.includes(imp.cancelText));
+    const key = [normText(cellVal(row, c.member)), name, normText(cellVal(row, c.code)) || product].join('|');
+    const it = { name, s, key, cancel, paid: toNum(cellVal(row, c.paid)), phone: normText(cellVal(row, c.phone)), date: String(cellVal(row, c.date) || '').slice(0, 10) };
+    const prev = byKey.get(key);
+    if (!prev || (it.cancel && !prev.cancel)) byKey.set(key, it);   // 同一筆訂單同時出現時，取消優先
+  }
+
+  const ops = [];
+  const cancels = [], adds = [];
+  for (const it of byKey.values()) {
+    const reg = findRegByKey(it.key);
+    if (it.cancel) {
+      if (reg && reg.status === 'cancelled') { imp.skipped++; continue; }
+      cancels.push({ it, reg });
+    } else {
+      if (reg) { imp.skipped++; continue; }
+      adds.push({ it });
+    }
+  }
+
+  // 疑似更改：同一位學員、同一課程，一筆取消（在系統內有報名）+ 一筆新訂單到不同場次
+  const free = {};   // 本次匯入會釋出／佔用的名額
+  const used = new Set();
+  for (const cn of cancels) {
+    if (!cn.reg || cn.reg.status !== 'active') continue;
+    const m = adds.find(a => !used.has(a) && a.it.name === cn.it.name && a.it.s.courseId === cn.it.s.courseId && a.it.s.id !== cn.reg.sessionId);
+    if (m) {
+      used.add(m); cn.used = true;
+      ops.push({ type: 'change', reg: cn.reg, to: m.it, checked: true });
+      free[cn.reg.sessionId] = (free[cn.reg.sessionId] || 0) + 1;
+      free[m.it.s.id] = (free[m.it.s.id] || 0) - 1;
+    }
+  }
+  for (const cn of cancels) {
+    if (cn.used) continue;
+    if (cn.reg && cn.reg.status === 'active') { ops.push({ type: 'cancel', reg: cn.reg, it: cn.it, checked: true }); free[cn.reg.sessionId] = (free[cn.reg.sessionId] || 0) + 1; }
+    else if (!cn.reg) ops.push({ type: 'cancel-new', it: cn.it, checked: true });
+    else imp.skipped++;
+  }
+  for (const a of adds) {
+    if (used.has(a)) continue;
+    const left = seatsLeft(a.it.s) + (free[a.it.s.id] || 0);
+    const full = left <= 0;
+    if (!full) free[a.it.s.id] = (free[a.it.s.id] || 0) - 1;
+    ops.push({ type: 'add', it: a.it, checked: !full, full });
+  }
+  imp.ops = ops;
+}
+
+const OP_INFO = {
+  add: ['新增報名', 'ok'], cancel: ['取消訂單', 'danger'], 'cancel-new': ['取消（系統內無原訂單）', 'danger'], change: ['更改場次', 'warn']
+};
+function opRow(op, i) {
+  const [label, cls] = OP_INFO[op.type];
+  let who, what, note = '';
+  if (op.type === 'change') {
+    who = op.reg.name; what = `${esc(sessionLabel(byId(db.sessions, op.reg.sessionId)))}<br>→ <b>${esc(sessionLabel(op.to.s))}</b>`;
+    note = `金額 ${money(op.reg.paid)} → ${money(op.to.paid)}`;
+  } else {
+    who = op.it.name; what = esc(sessionLabel(op.it.s)); note = money(op.it.paid) + (op.it.date ? '　' + op.it.date : '');
+    if (op.type === 'cancel-new') note += '　會建立一筆「已取消」紀錄';
+    if (op.full) note += '　<span class="tag danger">名額已滿，預設不匯入</span>';
+  }
+  return `<tr><td><input type="checkbox" data-op="${i}" ${op.checked ? 'checked' : ''}></td>
+    <td><span class="tag ${cls}">${label}</span></td><td>${esc(who)}</td><td>${what}</td><td class="muted">${note}</td></tr>`;
+}
+
+function impBody() {
+  if (imp.done) return `<div class="card info-done">${imp.done}</div>` + (imp.rows.length ? '' : '');
+  if (imp.error) return `<div class="card empty">${esc(imp.error)}</div>`;
+  if (!imp.rows.length) return '<div class="card empty">請先選擇平台下載的 Excel 檔</div>';
+  const cnt = t => imp.ops.filter(o => o.type === t).length;
+  const sel = ([k, label]) => `<label>${label}<select data-imp="${k}"><option value="">（沒有這欄）</option>${options(imp.headers.map(h => [h, h]), imp.cols[k])}</select></label>`;
+  const un = [...imp.unmatched];
+  const sess = sortSessions(db.sessions);
+  return `
+  <div class="card section">
+    <h3>1. 確認欄位 <span class="muted">${esc(imp.file)}，共 ${imp.rows.length} 筆資料</span></h3>
+    <div class="imp-cols">${IMP_FIELDS.map(sel).join('')}
+      <label>哪些文字代表「取消」<input data-imp-cancel value="${esc(imp.cancelText)}" placeholder="例如：取消"></label></div>
+  </div>
+  ${un.length ? `<div class="card section"><h3>2. 這些商品還沒對應到場次</h3>
+    <p class="muted">選好對應的場次後按「套用對應」，系統會記住，下次匯入就自動歸課。不是你管理的課（例如線上課）可選「略過」。</p>
+    ${un.map(([p, n], i) => `<div class="unm"><div><b>${esc(p)}</b> <span class="muted">${n} 筆</span></div>
+      <select data-unm="${i}"><option value="">（先不處理）</option>${sess.map(s => `<option value="${s.id}">${esc(sessionLabel(s))}</option>`).join('')}<option value="__ignore">略過，之後不再提醒</option></select></div>`).join('')}
+    <button class="primary sm" data-act="imp-map">套用對應</button></div>` : ''}
+  <div class="card section">
+    <h3>${un.length ? '3' : '2'}. 檢查並套用</h3>
+    <div class="imp-sum"><span class="tag ok">新增 ${cnt('add')}</span><span class="tag danger">取消 ${cnt('cancel') + cnt('cancel-new')}</span><span class="tag warn">更改場次 ${cnt('change')}</span><span class="tag gray">已匯入過／略過 ${imp.skipped}</span></div>
+    ${imp.ops.length ? `<div class="table-wrap"><table><tr><th></th><th>動作</th><th>學員</th><th>課程場次</th><th>內容</th></tr>${imp.ops.map(opRow).join('')}</table></div>
+      <div class="actions"><button class="primary" data-act="imp-apply">套用勾選的項目</button></div>`
+      : '<div class="empty">沒有需要處理的異動（都已經匯入過了）</div>'}
+  </div>`;
+}
+
+function viewImport() {
+  return `<h2>匯入訂單</h2>
+  <div class="card section">
+    <p class="muted" style="margin-top:0">把平台下載的 Excel（含取消標示欄的那份也可以）拖進來或選擇檔案。系統會依「商品名稱」自動歸到場次，新訂單加入名單，標示取消的訂單會取消，同一位學員取消後改報其他場次會視為「更改場次」。套用前你可以逐筆檢查。檔案只在你的瀏覽器內處理，不會上傳。</p>
+    <input type="file" id="imp-file" accept=".xlsx,.xls,.csv">
+  </div>
+  <div id="imp-body">${impBody()}</div>`;
+}
+const refreshImp = () => { const b = $('#imp-body'); if (b) b.innerHTML = impBody(); };
+
+function applyImport() {
+  const picked = imp.ops.filter(o => o.checked);
+  if (!picked.length) return alert('沒有勾選任何項目');
+  const now = new Date().toISOString();
+  const when = it => (/^\d{4}-\d{2}-\d{2}/.test(it.date) ? new Date(it.date + 'T00:00').toISOString() : now);
+  const newReg = (it, status) => ({ id: uid('r'), sessionId: it.s.id, name: it.name, phone: it.phone, email: '', paid: it.paid, status, createdAt: when(it), orderKey: it.key, orderDate: it.date, source: 'import' });
+  let a = 0, c = 0, ch = 0;
+  picked.forEach(op => {
+    if (op.type === 'add') { db.registrations.push(newReg(op.it, 'active')); a++; log('報名', `（匯入）${op.it.name} 報名 ${sessionLabel(op.it.s)}，實收 ${money(op.it.paid)}`); }
+    else if (op.type === 'cancel') { op.reg.status = 'cancelled'; op.reg.cancelledAt = now; c++; log('取消', `（匯入）${op.reg.name} 取消 ${sessionLabel(byId(db.sessions, op.reg.sessionId))}`); }
+    else if (op.type === 'cancel-new') { const r = newReg(op.it, 'cancelled'); r.cancelledAt = now; db.registrations.push(r); c++; log('取消', `（匯入）${op.it.name} 取消 ${sessionLabel(op.it.s)}（系統內原本沒有這筆訂單）`); }
+    else if (op.type === 'change') {
+      const from = byId(db.sessions, op.reg.sessionId);
+      op.reg.prevKeys = [...(op.reg.prevKeys || []), op.reg.orderKey].filter(Boolean);
+      op.reg.orderKey = op.to.key; op.reg.sessionId = op.to.s.id; op.reg.paid = op.to.paid; op.reg.orderDate = op.to.date || op.reg.orderDate;
+      ch++; log('換場次', `（匯入）${op.reg.name} 由「${sessionLabel(from)}」換到「${sessionLabel(op.to.s)}」`);
+    }
+  });
+  commit();
+  imp.rows = []; imp.ops = [];
+  imp.done = `<h3>匯入完成 ✓</h3><p>新增報名 <b>${a}</b> 筆、取消 <b>${c}</b> 筆、更改場次 <b>${ch}</b> 筆。</p>
+    <p><a href="#registrations">看報名名單</a>　<a href="#dashboard">回總覽</a></p>`;
+  refreshImp();
+}
+
+/* 匯出目前篩選的名單（CSV，Excel 可直接開啟）*/
+function exportRegs() {
+  const rows = [['課程', '場次', '姓名', '手機', '訂單日期', '實付金額', '退費金額', '狀態']];
+  filteredRegs().forEach(r => {
+    const s = byId(db.sessions, r.sessionId);
+    rows.push([s ? courseName(s.courseId) : '', s ? s.name : '', r.name, r.phone, r.orderDate || r.createdAt.slice(0, 10), r.paid, r.refundAmount || '', STATUS_TEXT[r.status]]);
+  });
+  const csv = '﻿' + rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: `名單-${ymd(new Date())}.csv` });
+  a.click(); URL.revokeObjectURL(url);
+}
+
+/* ---------- 畫面：異動紀錄 ---------- */
+function viewLogs() {
+  const tagCls = { 退費: 'danger', 取消: 'danger', 換場次: 'warn', 報名: 'ok', 匯入: '' };
+  return `<h2>異動紀錄</h2>
+  <div class="table-wrap"><table>
+    <tr><th style="width:160px">時間</th><th style="width:90px">類型</th><th>內容</th></tr>
+    ${db.logs.map(l => `<tr><td class="muted">${new Date(l.at).toLocaleString('zh-TW', { hour12: false })}</td>
+      <td><span class="tag ${tagCls[l.type] || ''}">${esc(l.type)}</span></td><td>${esc(l.text)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">還沒有任何紀錄</td></tr>'}
+  </table></div>`;
+}
+
+/* ---------- 畫面：設定 ---------- */
+function ruleRow(r = { minDays: '', percent: '' }) {
+  return `<div class="rule-row">開課前至少 <input type="number" min="0" name="minDays" value="${r.minDays}" required> 天，退 <input type="number" min="0" max="100" name="percent" value="${r.percent}" required> %
+    <button type="button" class="sm danger" data-act="rule-del">移除</button></div>`;
+}
+function viewSettings() {
+  return `<h2>設定</h2>
+  <div class="card section">
+    <h3>退費規則</h3>
+    <p class="muted">系統依「第一堂課開課前還有幾天」套用第一條符合的規則（天數大的優先）。已開課一律不退（可在退費時手動調整金額）。</p>
+    <form id="rules-form">
+      <div id="rules">${db.settings.refundRules.map(ruleRow).join('')}</div>
+      <button type="button" class="sm" data-act="rule-add">＋ 新增一條</button>
+      <button class="primary sm">儲存規則</button>
+    </form>
+  </div>
+  <div class="card section">
+    <h3>資料備份</h3>
+    <p class="muted">資料目前存在這個瀏覽器裡（不會上傳到 GitHub）。換電腦或清除瀏覽器資料前，請先匯出備份。</p>
+    <div class="toolbar">
+      <button data-act="export">匯出備份 (JSON)</button>
+      <button data-act="import">匯入備份</button>
+      <input type="file" id="import-file" accept="application/json" hidden>
+    </div>
+  </div>
+  ${(db.settings.ignoredProducts || []).length ? `<div class="card section"><h3>匯入時已略過的平台商品</h3>
+    <p class="muted">${(db.settings.ignoredProducts).map(esc).join('<br>')}</p>
+    <button class="sm" data-act="ign-clear">清除略過清單（之後匯入會重新提醒）</button></div>` : ''}
+  <div class="card section">
+    <h3>重置資料</h3>
+    <p class="muted">「載入我的課程」會建立太極、跳舞、高爾夫的課程與場次（沒有學員）。「載入範例資料」含假學員，只用來看儀表板的樣子。</p>
+    <div class="toolbar">
+      <button class="primary" data-act="load-real">載入我的課程</button>
+      <button data-act="load-sample">載入範例資料</button>
+      <button class="danger" data-act="clear-all">清空全部資料</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- 路由與渲染 ---------- */
+const views = { dashboard: viewDashboard, courses: viewCourses, sessions: viewSessions, registrations: viewRegistrations, import: viewImport, logs: viewLogs, settings: viewSettings };
+function render() {
+  const v = (location.hash || '#dashboard').slice(1);
+  const name = views[v] ? v : 'dashboard';
+  document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
+  $('#view').innerHTML = views[name]();
+}
+window.addEventListener('hashchange', render);
+
+/* ---------- 事件（集中處理） ---------- */
+function moveMonth(n) {
+  const [y, m] = ui.calMonth.split('-').map(Number);
+  ui.calMonth = ymdMonth(new Date(y, m - 1 + n, 1));
+  $('#cal-wrap').innerHTML = calendarHTML();   // 只更新月曆，頁面不會跳動
+}
+
+const actions = {
+  'course-add': () => courseForm(),
+  'course-edit': id => courseForm(byId(db.courses, id)),
+  'course-del': id => {
+    const c = byId(db.courses, id);
+    if (db.sessions.some(s => s.courseId === id)) return alert('這個課程還有場次，請先刪除場次');
+    if (!confirm(`確定刪除課程「${c.name}」？`)) return;
+    db.courses = db.courses.filter(x => x.id !== id); log('課程', `刪除課程：${c.name}`); commit(); render();
+  },
+  'session-add': id => sessionForm({}, id),
+  'session-edit': id => sessionForm(byId(db.sessions, id)),
+  'session-del': id => {
+    const s = byId(db.sessions, id);
+    if (activeRegs(id).length) return alert('這個場次還有學員報名中，請先辦理退費或換場次');
+    if (!confirm(`確定刪除場次？\n${sessionLabel(s)}`)) return;
+    db.registrations = db.registrations.filter(r => r.sessionId !== id);
+    db.sessions = db.sessions.filter(x => x.id !== id);
+    log('場次', `刪除場次：${sessionLabel(s)}`); commit(); render();
+  },
+  'goto-session': id => { ui.regSession = id; ui.regStatus = ''; ui.regQ = ''; location.hash = '#registrations'; },
+  'export-regs': () => exportRegs(),
+  'imp-apply': () => applyImport(),
+  'imp-map': () => {
+    const keys = [...imp.unmatched.keys()];
+    document.querySelectorAll('[data-unm]').forEach(sel => {
+      const p = keys[+sel.dataset.unm], v = sel.value;
+      if (!v) return;
+      if (v === '__ignore') { (db.settings.ignoredProducts = db.settings.ignoredProducts || []).push(p); log('設定', `略過平台商品：${p}`); return; }
+      const s = byId(db.sessions, v);
+      if (!s.productName) s.productName = p; else (s.aliases = s.aliases || []).push(p);
+      log('場次', `平台商品「${p}」對應到 ${sessionLabel(s)}`);
+    });
+    commit(); analyzeImport(); refreshImp();
+  },
+  'ign-clear': () => { db.settings.ignoredProducts = []; commit(); render(); },
+  'cal-prev': () => moveMonth(-1),
+  'cal-next': () => moveMonth(1),
+  'cal-today': () => { ui.calMonth = ymdMonth(); $('#cal-wrap').innerHTML = calendarHTML(); },
+  'reg-add': id => regForm(id),
+  'reg-refund': id => refundForm(id),
+  'reg-transfer': id => transferForm(id),
+  'rule-add': () => $('#rules').insertAdjacentHTML('beforeend', ruleRow()),
+  'rule-del': (_, el) => el.closest('.rule-row').remove(),
+  'export': () => {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: `course-backup-${new Date().toISOString().slice(0, 10)}.json` });
+    a.click(); URL.revokeObjectURL(url);
+  },
+  'import': () => $('#import-file').click(),
+  'load-real': () => { if (confirm('會覆蓋現有資料，確定嗎？')) { db = Store.initial(); commit(); render(); } },
+  'load-sample': () => { if (confirm('會覆蓋現有資料，確定嗎？')) { db = Store.sample(); commit(); render(); } },
+  'clear-all': () => { if (confirm('會刪除全部資料且無法復原，確定嗎？')) { db = Store.empty(); commit(); render(); } }
+};
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (el && actions[el.dataset.act]) actions[el.dataset.act](el.dataset.id, el);
+});
+
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'imp-file' && t.files[0]) {
+    const f = t.files[0], reader = new FileReader();
+    reader.onload = () => { parseImport(reader.result, f.name); refreshImp(); };
+    reader.readAsArrayBuffer(f);
+  }
+  if (t.dataset.imp) { imp.cols[t.dataset.imp] = t.value; analyzeImport(); refreshImp(); }
+  if ('impCancel' in t.dataset) { imp.cancelText = t.value.trim(); analyzeImport(); refreshImp(); }
+  if (t.dataset.op != null) imp.ops[+t.dataset.op].checked = t.checked;
+  if (t.id === 'f-course') { ui.sessionCourse = t.value; render(); }
+  if (t.id === 'f-session') { ui.regSession = t.value; $('#regList').innerHTML = regTable(); }
+  if (t.id === 'f-status') { ui.regStatus = t.value; $('#regList').innerHTML = regTable(); }
+  if (t.id === 'import-file' && t.files[0]) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const d = JSON.parse(reader.result);
+        if (!['courses', 'sessions', 'registrations'].every(k => Array.isArray(d[k]))) throw new Error('格式不符');
+        db = Store.migrate(d); commit(); render(); alert('匯入成功');
+      } catch (err) { alert('匯入失敗：' + err.message); }
+    };
+    reader.readAsText(t.files[0]);
+  }
+});
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'f-q') { ui.regQ = e.target.value; $('#regList').innerHTML = regTable(); }
+});
+
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'rules-form') return;
+  e.preventDefault();
+  const rows = [...e.target.querySelectorAll('.rule-row')].map(r => ({
+    minDays: +$('[name=minDays]', r).value, percent: +$('[name=percent]', r).value
+  }));
+  if (!rows.length) return alert('至少要有一條規則');
+  if (!rows.some(r => r.minDays === 0)) return alert('請至少設定一條「開課前 0 天」的規則，作為最後底線');
+  db.settings.refundRules = rows.sort((a, b) => b.minDays - a.minDays);
+  log('設定', '更新退費規則'); commit(); render(); alert('已儲存');
+});
+
+render();
+
+  </script>
+</body>
+</html>
